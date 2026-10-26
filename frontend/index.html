@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spaza Books - Digital Ledger</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen p-4">
+    <div class="max-w-md mx-auto space-y-6">
+        <!-- Header -->
+        <header class="bg-emerald-600 text-white p-4 rounded-2xl shadow-md text-center">
+            <h1 class="text-xl font-bold">Spaza Books 📚</h1>
+            <p class="text-xs text-emerald-100 mt-1">Meta AI Developer Hackathon Demo</p>
+        </header>
+
+        <!-- Capture Section -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+            <h2 class="font-semibold text-slate-700">1. Capture Ledger Page</h2>
+            <input type="file" id="ledgerInput" accept="image/*" capture="environment" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"/>
+            <button onclick="uploadLedger()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-xl transition shadow-sm">
+                Extract Rows with AI ⚡
+            </button>
+        </div>
+
+        <!-- Confirm and Store Table -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+            <h2 class="font-semibold text-slate-700">2. Confirm & Store Rows</h2>
+            <div id="results" class="space-y-3 text-sm">
+                <p class="text-slate-400 italic text-center py-4">No ledger scanned yet. Snap or upload a photo above.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

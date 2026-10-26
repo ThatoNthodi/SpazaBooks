@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Spaza Books</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 flex items-center justify-center min-h-screen">
+    <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-slate-900">Create Account 📚</h1>
+            <p class="text-sm text-slate-500 mt-1">Join Spaza Books and digitize your shop</p>
+        </div>
+
+        <form id="signupForm" onsubmit="handleSignup(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Email Address</label>
+                <input type="email" id="email" required class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 text-sm" placeholder="trader@spazabooks.co.za" />
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Password</label>
+                <input type="password" id="password" required class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 text-sm" placeholder="At least 6 characters" />
+            </div>
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-xl transition shadow-sm text-sm">
+                Create Account 🚀
+            </button>
+        </form>
+
+        <p id="message" class="text-xs text-center mt-3"></p>
+
+        <div class="mt-6 text-center border-t border-slate-100 pt-4 space-x-4">
+            <a href="login.html" class="text-xs text-emerald-600 hover:underline font-medium">Already have an account? Sign in</a>
+            <span class="text-slate-300">|</span>
+            <a href="privacy.html" class="text-xs text-slate-400 hover:text-slate-600">Privacy Policy</a>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://yxdgafyqcchbmkwydtvg.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4ZGdhZnlxY2NoYm1rd3lkdHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwMjIyMTgsImV4cCI6MjEwODU5ODIxOH0.B9iWcIeN5Nd-r8hZSNvMpJS45diCAcCQ4PkDCq6u1xU";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function handleSignup(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const msg = document.getElementById('message');
+
+            msg.className = "text-xs text-center mt-3 text-slate-500";
+            msg.innerText = "Creating your account...";
+
+            const { data, error } = await supabaseClient.auth.signUp({
+                email: email,
+                password: password,
+            });
+
+            if (error) {
+                msg.className = "text-xs text-center mt-3 text-rose-500";
+                msg.innerText = error.message;
+            } else {
+                msg.className = "text-xs text-center mt-3 text-emerald-600";
+                msg.innerText = "Success! Account created. You can now log in.";
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>
