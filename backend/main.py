@@ -1,11 +1,11 @@
-import os, re, json
+import os, re, json, secrets
 from datetime import date
 from uuid import UUID, uuid4
 from typing import List, Optional
 
 import requests
 from dotenv import load_dotenv
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -64,12 +64,18 @@ def clean_date(value):
     return re.sub(r"[|\-.]", "/", s)
 
 
+def check_access(x_access_code: str = Header(default="")):
+    expected = os.getenv("ACCESS_CODE")
+    if expected and not secrets.compare_digest(x_access_code.encode(), expected.encode()):
+        raise HTTPException(status_code=401, detail="Access code required.")
+
+
 @app.get("/")
 def read_root():
     return {"status": "Spaza Books API is running", "hackathon": "Meta Global AI Developer Hackathon"}
 
 
-@app.post("/api/extract")
+@app.post("/api/extract", dependencies=[Depends(check_access)])
 async def extract_rows(file: UploadFile = File(...)):
     """Read a photo of a handwritten ledger and return rows to be confirmed."""
     if not (file.content_type or "").startswith("image/"):
@@ -142,7 +148,7 @@ async def extract_rows(file: UploadFile = File(...)):
     return {"ledger_batch_id": str(uuid4()), "rows": rows}
 
 
-@app.post("/api/store")
+@app.post("/api/store", dependencies=[Depends(check_access)])
 async def store_ledger_rows(payload: dict):
     """Save confirmed transactions once per ledger batch."""
     try:
@@ -187,7 +193,7 @@ def _item_name(description):
     return name or str(description or "")
 
 
-@app.get("/api/summary")
+@app.get("/api/summary", dependencies=[Depends(check_access)])
 def weekly_summary(days: int = 7):
     """Plain-language summary of recent sales. Numbers come from code, wording from the model."""
     from datetime import timedelta

@@ -5,6 +5,25 @@ let currentLedgerBatchId = null;
 
 const API_BASE = "http://localhost:8000";
 
+/* Send the access code with every backend request; ask for it once if refused. */
+const _nativeFetch = window.fetch.bind(window);
+window.fetch = async function (url, opts = {}) {
+    if (!String(url).startsWith(API_BASE)) return _nativeFetch(url, opts);
+    const send = () => _nativeFetch(url, {
+        ...opts,
+        headers: { ...(opts.headers || {}), "X-Access-Code": sessionStorage.getItem("accessCode") || "" }
+    });
+    let res = await send();
+    if (res.status === 401) {
+        const code = prompt("Enter the access code to use Spaza Books:");
+        if (code) {
+            sessionStorage.setItem("accessCode", code.trim());
+            res = await send();
+        }
+    }
+    return res;
+};
+
 function escapeHTML(value) {
     return String(value ?? "").replace(/[&<>"']/g, character => ({
         "&": "&amp;",
