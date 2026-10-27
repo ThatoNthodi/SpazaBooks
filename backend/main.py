@@ -275,3 +275,17 @@ def weekly_summary(days: int = 7):
         summary = ", and ".join(parts) + "."
 
     return {"facts": facts, "summary": summary, "ai_written": ai_written}
+
+
+@app.get("/api/debug-key", dependencies=[Depends(check_access)])
+def debug_key():
+    """Temporary: shows a safe fingerprint of the key and what Meta says it can see."""
+    k = model_key()
+    out = {"key_start": k[:8], "key_end": k[-4:], "key_length": len(k)}
+    try:
+        r = requests.get(f"{BASE}/models", headers={"Authorization": f"Bearer {k}"}, timeout=30)
+        out["models_status"] = r.status_code
+        out["models_body"] = r.text[:700]
+    except Exception as e:
+        out["models_error"] = str(e)[:200]
+    return out
