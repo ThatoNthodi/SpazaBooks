@@ -348,3 +348,37 @@ function loadSummary() {
 }
 
 loadSummary();
+
+
+/* One date per ledger page: show it once, apply it to every row. */
+(function () {
+    const originalRender = renderRows;
+    renderRows = function (rows) {
+        originalRender(rows);
+        if (!rows || !rows.length) return;
+        const dates = rows.map(r => String(r.date || "").trim());
+        if (new Set(dates).size !== 1) return;
+
+        const results = document.getElementById("results");
+        const banner = document.createElement("div");
+        banner.className = "p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2 mb-4";
+        banner.innerHTML =
+            '<label for="pageDate" class="block text-sm font-semibold text-amber-800">Date on this page</label>' +
+            '<p class="text-xs text-amber-700">We read the date as shown below. Check it against your page; it applies to every row.</p>' +
+            '<input type="text" id="pageDate" value="' + escapeHTML(dates[0]) + '" ' +
+            'class="w-full p-2 rounded-lg border border-amber-300 bg-white font-semibold focus:outline-none focus:border-emerald-500" />';
+        results.insertBefore(banner, results.firstChild);
+
+        rows.forEach((_, i) => {
+            const el = document.getElementById("date-" + i);
+            if (el && el.parentElement) el.parentElement.style.display = "none";
+        });
+
+        document.getElementById("pageDate").addEventListener("input", e => {
+            rows.forEach((_, i) => {
+                const el = document.getElementById("date-" + i);
+                if (el) el.value = e.target.value;
+            });
+        });
+    };
+})();
