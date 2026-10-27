@@ -3,3 +3,4 @@ spaza-test/
 __pycache__/
 *.pyc
 *.bak
+*.bak*

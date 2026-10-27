@@ -56,6 +56,14 @@ def get_supabase():
     return create_client(url, key)
 
 
+def clean_date(value):
+    """Turn '25 | 10 | 2026' or '25-10-2026' into '25/10/2026'."""
+    if not value:
+        return None
+    s = re.sub(r"\s+", "", str(value))
+    return re.sub(r"[|\-.]", "/", s)
+
+
 @app.get("/")
 def read_root():
     return {"status": "Spaza Books API is running", "hackathon": "Meta Global AI Developer Hackathon"}
@@ -121,7 +129,7 @@ async def extract_rows(file: UploadFile = File(...)):
             qty = r.get("quantity")
             qty_text = f" {int(qty)}" if isinstance(qty, (int, float)) and float(qty).is_integer() else (f" {qty}" if qty else "")
             rows.append({
-                "date": r.get("date") or today,
+                "date": clean_date(r.get("date")) or today,
                 "description": f"{r.get('item', '').strip()}{qty_text}".strip(),
                 "type": "expense" if kind == "expense" else "income",
                 "amount": float(r.get("amount") or 0),
