@@ -42,7 +42,7 @@ PROMPT = (
 
 
 def model_key() -> str:
-    key = os.getenv("MODEL_API_KEY")
+    key = (os.getenv("MODEL_API_KEY") or "").strip()
     if not key:
         raise HTTPException(status_code=500, detail="MODEL_API_KEY is not set.")
     return key
@@ -122,7 +122,11 @@ async def extract_rows(file: UploadFile = File(...)):
         raw_rows = json.loads(text)
         if not isinstance(raw_rows, list):
             raise ValueError("Expected a JSON list.")
-    except requests.RequestException:
+    except requests.RequestException as e:
+        resp_obj = getattr(e, "response", None)
+        print("META REQUEST FAILED:", type(e).__name__,
+              getattr(resp_obj, "status_code", None),
+              (getattr(resp_obj, "text", "") or str(e))[:300], flush=True)
         raise HTTPException(status_code=502, detail="The Muse Spark request failed. Try again.")
     except (KeyError, ValueError, TypeError, json.JSONDecodeError):
         raise HTTPException(status_code=502, detail="The model returned an unreadable answer. Try again.")
