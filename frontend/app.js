@@ -287,6 +287,7 @@ async function confirmAndStore() {
         }
 
         alert(`Success! ${result.inserted_count} transactions saved to Supabase.`);
+        loadSummary();
 
         currentExtractedRows = [];
         currentLedgerBatchId = null;
@@ -308,3 +309,42 @@ async function confirmAndStore() {
         isSaving = false;
     }
 }
+
+
+function loadSummary() {
+    let card = document.getElementById("summaryCard");
+    if (!card) {
+        card = document.createElement("div");
+        card.id = "summaryCard";
+        card.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-3";
+        document.querySelector(".max-w-md").appendChild(card);
+    }
+    card.innerHTML = '<h2 class="font-semibold text-slate-700">3. Your week</h2>' +
+        '<p class="text-slate-400 italic text-sm">Working out your week...</p>';
+
+    fetch(`${API_BASE}/api/summary?days=14`)
+        .then(r => r.json())
+        .then(d => {
+            if (!d.facts || !d.summary) {
+                card.innerHTML = '<h2 class="font-semibold text-slate-700">3. Your week</h2>' +
+                    '<p class="text-slate-400 italic text-sm">Save a ledger page to see your week.</p>';
+                return;
+            }
+            const f = d.facts;
+            card.innerHTML =
+                '<h2 class="font-semibold text-slate-700">3. Your week</h2>' +
+                '<div class="grid grid-cols-2 gap-3 text-center">' +
+                '<div class="bg-emerald-50 rounded-xl p-3"><div class="text-xs text-slate-500">Sales</div>' +
+                '<div class="text-lg font-bold text-emerald-700">R' + Math.round(f.total_sales_rand) + '</div></div>' +
+                '<div class="bg-amber-50 rounded-xl p-3"><div class="text-xs text-slate-500">Owed to you</div>' +
+                '<div class="text-lg font-bold text-amber-700">R' + Math.round(f.owed_on_credit_rand) + '</div></div>' +
+                '</div>' +
+                '<p class="text-sm text-slate-600">' + escapeHTML(d.summary).replace(/\n/g, "<br>") + '</p>';
+        })
+        .catch(() => {
+            card.innerHTML = '<h2 class="font-semibold text-slate-700">3. Your week</h2>' +
+                '<p class="text-slate-400 italic text-sm">Could not load your week right now.</p>';
+        });
+}
+
+loadSummary();

@@ -166,3 +166,102 @@ async def store_ledger_rows(payload: dict):
         if "ledgers_batch_row_unique" in msg or "23505" in msg:
             raise HTTPException(status_code=409, detail="This ledger batch has already been saved.")
         raise HTTPException(status_code=500, detail="Could not save transactions to the database.")
+
+
+def _parse_date(s):
+    from datetime import datetime
+    s = str(s or "").strip()
+    for fmt in ("%d/%m/%Y", "%d/%m"):
+        try:
+            d = datetime.strptime(s, fmt)
+            if fmt == "%d/%m":
+                d = d.replace(year=date.today().year)
+            return d.date()
+        except ValueError:
+            continue
+    return None
+
+
+def _item_name(description):
+    name = re.sub(r"[\s\d.]+(pck|pk|pack|kg|l)?$", "", str(description or ""), flags=re.I).strip()
+    return name or str(description or "")
+
+
+@app.get("/api/summary")
+def weekly_summary(days: int = 7):
+    """Plain-language summary of recent sales. Numbers come from code, wording from the model."""
+    from datetime import timedelta
+    from collections import defaultdict
+
+    days = max(1, min(days, 90))
+    since = date.today() - timedelta(days=days)
+    rows = get_supabase().table("ledgers").select("*").execute().data or []
+
+    sales = expenses = on_credit = 0.0
+    by_item, by_day, debtors = defaultdict(float), defaultdict(float), defaultdict(float)
+    counted = 0
+    for r in rows:
+        d = _parse_date(r.get("date"))
+        if not d or d < since:
+            continue
+        amt = float(r.get("amount") or 0)
+        counted += 1
+        if r.get("type") == "expense":
+            expenses += amt
+        else:
+            sales += amt
+            by_item[_item_name(r.get("description"))] += amt
+            by_day[d.isoformat()] += amt
+            if r.get("credit_customer"):
+                on_credit += amt
+                debtors[r["credit_customer"]] += amt
+
+    facts = {
+        "period_days": days,
+        "entries_counted": counted,
+        "total_sales_rand": round(sales, 2),
+        "total_expenses_rand": round(expenses, 2),
+        "owed_on_credit_rand": round(on_credit, 2),
+        "owed_by": {k: round(v, 2) for k, v in debtors.items()},
+        "best_seller": max(by_item, key=by_item.get) if by_item else None,
+        "best_seller_rand": round(max(by_item.values()), 2) if by_item else 0,
+        "busiest_day": max(by_day, key=by_day.get) if by_day else None,
+        "busiest_day_rand": round(max(by_day.values()), 2) if by_day else 0,
+    }
+
+    summary = None
+    if counted:
+        prompt = (
+            "You help a small spaza shop owner understand their week. Using ONLY these figures "
+            "(South African rand), write 3 short, plain-English sentences: how the week went, "
+            "the best seller, and one practical suggestion. Do not invent any numbers.\n"
+            + json.dumps(facts)
+        )
+        try:
+            resp = requests.post(
+                f"{BASE}/responses",
+                headers={"Authorization": f"Bearer {model_key()}", "Content-Type": "application/json"},
+                json={"model": MODEL,
+                      "input": [{"role": "user", "content": [{"type": "input_text", "text": prompt}]}],
+                      "stream": False, "max_output_tokens": 8000, "temperature": 0,
+                      "reasoning": {"effort": "medium"}},
+                timeout=120,
+            )
+            resp.raise_for_status()
+            summary = "".join(
+                c["text"] for o in resp.json()["output"] if o["type"] == "message"
+                for c in o["content"] if c["type"] == "output_text"
+            ).strip()
+        except Exception:
+            summary = None
+
+    ai_written = bool(summary)
+    if counted and not summary:
+        parts = [f"You sold R{facts['total_sales_rand']:.0f} over the last {days} days"]
+        if facts["best_seller"]:
+            parts.append(f"your best seller was {facts['best_seller']}")
+        if facts["owed_on_credit_rand"]:
+            parts.append(f"customers still owe you R{facts['owed_on_credit_rand']:.0f}")
+        summary = ", and ".join(parts) + "."
+
+    return {"facts": facts, "summary": summary, "ai_written": ai_written}
